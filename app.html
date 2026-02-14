@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عجلة الحظ الاحترافية</title>
+    <style>
+        :root {
+            --primary-bg: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #bb86fc;
+            --text-color: #e1e1e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        h2 { color: var(--accent-color); text-shadow: 0 0 10px rgba(187, 134, 252, 0.3); }
+
+        .wheel-wrapper {
+            position: relative;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+
+        #pointer {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #ff4757; /* لون أحمر زاهي */
+            z-index: 10;
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+        }
+
+        canvas {
+            border-radius: 50%;
+            transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);
+        }
+
+        .controls {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background: #2d2d2d;
+            border: 2px solid #444;
+            border-radius: 12px;
+            color: white;
+            padding: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus { border-color: var(--accent-color); }
+
+        button {
+            background: linear-gradient(135deg, #bb86fc, #6200ee);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(98, 0, 238, 0.3);
+        }
+
+        button:hover { transform: scale(1.05); filter: brightness(1.2); }
+        button:active { transform: scale(0.95); }
+        button:disabled { background: #555; cursor: not-allowed; transform: scale(1); }
+
+        /* نافذة النتيجة المودرن */
+        #resultModal {
+            position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: #2c3e50; border: 2px solid var(--accent-color);
+            padding: 30px; border-radius: 20px; text-align: center;
+            z-index: 100; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #resultModal.active { transform: translate(-50%, -50%) scale(1); }
+    </style>
+</head>
+<body>
+
+    <h2>🎡 عجلة الحظ الذكية</h2>
+
+    <div class="wheel-wrapper">
+        <div id="pointer"></div>
+        <canvas id="wheel" width="400" height="400"></canvas>
+    </div>
+
+    <div class="controls">
+        <textarea id="namesInput" placeholder="أدخل الأسماء هنا...">أحمد
+سارة
+خالد
+ليلى
+ياسين</textarea>
+        <button id="spinBtn">أدر العجلة!</button>
+    </div>
+
+    <div id="resultModal">
+        <h3>🎉 الفائز هو 🎉</h3>
+        <h1 id="winnerName" style="color: #bb86fc;">-</h1>
+        <button onclick="document.getElementById('resultModal').classList.remove('active')">حسناً</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const namesInput = document.getElementById('namesInput');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultModal = document.getElementById('resultModal');
+        const winnerNameText = document.getElementById('winnerName');
+
+        let names = [];
+        let currentRotation = 0;
+
+        function drawWheel() {
+            names = namesInput.value.split('\n').filter(n => n.trim() !== "");
+            if (names.length === 0) return;
+
+            const sliceAngle = (2 * Math.PI) / names.length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            names.forEach((name, i) => {
+                const angle = i * sliceAngle;
+                
+                // رسم الشريحة
+                ctx.beginPath();
+                ctx.fillStyle = `hsl(${i * (360 / names.length)}, 65%, 50%)`;
+                ctx.moveTo(200, 200);
+                ctx.arc(200, 200, 200, angle, angle + sliceAngle);
+                ctx.lineTo(200, 200);
+                ctx.fill();
+                ctx.stroke();
+                ctx.strokeStyle = "rgba(0,0,0,0.1)";
+
+                // إضافة النص
+                ctx.save();
+                ctx.translate(200, 200);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 18px Arial";
+                ctx.fillText(name, 180, 8);
+                ctx.restore();
+            });
+        }
+
+        function spin() {
+            if (names.length < 2) return alert("أدخل اسمين على الأقل!");
+            
+            spinBtn.disabled = true;
+            resultModal.classList.remove('active');
+
+            const spins = 5 + Math.random() * 5; // عدد الدورات
+            const extraDegrees = Math.random() * 360;
+            const totalDegrees = (spins * 360) + extraDegrees;
+            
+            currentRotation += totalDegrees;
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                spinBtn.disabled = false;
+                
+                // حساب الفائز بدقة بناءً على موقع السهم العلوي (270 درجة)
+                const actualRotation = (currentRotation % 360);
+                const sliceSize = 360 / names.length;
+                
+                // المعادلة الصحيحة لتحديد الاسم تحت السهم العلوي تماماً
+                const winnerIndex = Math.floor(((360 - actualRotation % 360) + 270) % 360 / sliceSize);
+                
+                winnerNameText.innerText = names[winnerIndex];
+                resultModal.classList.add('active');
+            }, 5000);
+        }
+
+        namesInput.addEventListener('input', drawWheel);
+        spinBtn.addEventListener('click', spin);
+        drawWheel();
+    </script>
+</body>
+</html>
